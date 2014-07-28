@@ -101,15 +101,18 @@ class GenericScoringServlet[T] extends HttpServlet {
       getServletConfig.getInitParameter(RECORD_PARAMETERS_KEY),
       classOf[JMap[String, String]])
     val setupContext: InternalFreshenerContext =
-      InternalFreshenerContext.create(attachedColumn, recordParameters)
+      InternalFreshenerContext.create(attachedColumn, recordParameters, NullCounterManager.get)
     kvFactory = KeyValueStoreReaderFactory.create(scoreFunction.getRequiredStores(setupContext))
     setupContext.setKeyValueStoreReaderFactory(kvFactory)
     scoreFunction.setup(setupContext)
   }
 
   override def destroy() {
-    val cleanupContext: InternalFreshenerContext =
-      InternalFreshenerContext.create(attachedColumn, recordParameters, kvFactory)
+    val cleanupContext: InternalFreshenerContext = InternalFreshenerContext.create(
+        attachedColumn,
+        recordParameters,
+        NullCounterManager.get,
+        kvFactory)
     scoreFunction.cleanup(cleanupContext)
     kvFactory.close()
     readerPool.close()
@@ -172,6 +175,7 @@ class GenericScoringServlet[T] extends HttpServlet {
       attachedColumn,
       recordParameters,
       parameterOverrides,
+      NullCounterManager.get,
       kvFactory)
 
     val rowData: KijiRowData = {
